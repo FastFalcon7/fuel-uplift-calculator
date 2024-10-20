@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jet A-1 Uplift Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: inline-block;
+            width: 200px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 150px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .unit {
+            display: inline-block;
+            width: 80px;
+            margin-left: 10px;
+            color: #0066cc;
+            cursor: pointer;
+        }
+        .result {
+            font-weight: bold;
+            color: #0066cc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Jet A-1 Uplift Calculator</h1>
+    <form id="upliftForm">
+        <div class="form-group">
+            <label for="remainingFuel">Remaining Fuel:</label>
+            <input type="number" id="remainingFuel" step="0.01" required>
+            <span class="unit">lbs</span>
+        </div>
+        <div class="form-group">
+            <label for="requiredFuel">Required Fuel:</label>
+            <input type="number" id="requiredFuel" step="0.01" required>
+            <span class="unit">lbs</span>
+        </div>
+        <div class="form-group">
+            <label for="fuelDensity">Fuel Density:</label>
+            <input type="number" id="fuelDensity" step="0.0001" required>
+            <span class="unit">kg/l</span>
+        </div>
+        <div class="form-group">
+            <label for="fuelTemperature">Fuel Temperature:</label>
+            <input type="number" id="fuelTemperature" step="0.1" required>
+            <span class="unit">°C</span>
+        </div>
+        <div class="form-group">
+            <label for="requiredUplift">Required Uplift:</label>
+            <input type="number" id="requiredUplift" readonly>
+            <select id="upliftUnit">
+                <option value="L">Liters</option>
+                <option value="USG">US Gallons</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="actualUplift">Actual Uplift:</label>
+            <input type="number" id="actualUplift" step="0.01" required>
+            <select id="actualUpliftUnit">
+                <option value="L">Liters</option>
+                <option value="USG">US Gallons</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="totalActualFuel">Total Actual Fuel:</label>
+            <input type="number" id="totalActualFuel" readonly>
+            <span class="unit">lbs</span>
+        </div>
+    </form>
+
+    <script>
+        const form = document.getElementById('upliftForm');
+        const remainingFuel = document.getElementById('remainingFuel');
+        const requiredFuel = document.getElementById('requiredFuel');
+        const fuelDensity = document.getElementById('fuelDensity');
+        const fuelTemperature = document.getElementById('fuelTemperature');
+        const requiredUplift = document.getElementById('requiredUplift');
+        const upliftUnit = document.getElementById('upliftUnit');
+        const actualUplift = document.getElementById('actualUplift');
+        const actualUpliftUnit = document.getElementById('actualUpliftUnit');
+        const totalActualFuel = document.getElementById('totalActualFuel');
+
+        function calculateDensity(temperature) {
+            // This is a simplified formula and may not be accurate for all conditions
+            return 0.8075 - 0.0007 * temperature;
+        }
+
+        function calculateTemperature(density) {
+            // Inverse of the above formula
+            return (0.8075 - density) / 0.0007;
+        }
+
+        function convertToLiters(value, fromUnit) {
+            if (fromUnit === 'USG') {
+                return value * 3.78541;
+            }
+            return value;
+        }
+
+        function convertToUSG(value, fromUnit) {
+            if (fromUnit === 'L') {
+                return value / 3.78541;
+            }
+            return value;
+        }
+
+        function convertToLbs(value, unit, density) {
+            const liters = convertToLiters(value, unit);
+            return liters * density * 2.20462;
+        }
+
+        function updateCalculations() {
+            const density = parseFloat(fuelDensity.value);
+            const remainingFuelLbs = parseFloat(remainingFuel.value);
+            const requiredFuelLbs = parseFloat(requiredFuel.value);
+            
+            if (isNaN(density) || isNaN(remainingFuelLbs) || isNaN(requiredFuelLbs)) return;
+
+            const upliftLbs = requiredFuelLbs - remainingFuelLbs;
+            const upliftLiters = upliftLbs / (density * 2.20462);
+            
+            requiredUplift.value = upliftUnit.value === 'L' ? upliftLiters.toFixed(2) : convertToUSG(upliftLiters, 'L').toFixed(2);
+
+            const actualUpliftValue = parseFloat(actualUplift.value);
+            if (!isNaN(actualUpliftValue)) {
+                const actualUpliftLbs = convertToLbs(actualUpliftValue, actualUpliftUnit.value, density);
+                totalActualFuel.value = (remainingFuelLbs + actualUpliftLbs).toFixed(2);
+            }
+        }
+
+        form.addEventListener('input', updateCalculations);
+        upliftUnit.addEventListener('change', updateCalculations);
+        actualUpliftUnit.addEventListener('change', updateCalculations);
+
+        fuelDensity.addEventListener('input', () => {
+            const density = parseFloat(fuelDensity.value);
+            if (!isNaN(density)) {
+                fuelTemperature.value = calculateTemperature(density).toFixed(1);
+            }
+        });
+
+        fuelTemperature.addEventListener('input', () => {
+            const temperature = parseFloat(fuelTemperature.value);
+            if (!isNaN(temperature)) {
+                fuelDensity.value = calculateDensity(temperature).toFixed(4);
+            }
+        });
+    </script>
+</body>
+</html>
